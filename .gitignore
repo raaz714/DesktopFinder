@@ -1,0 +1,30 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# ----------------- rust lib --------------------
+
+target
+pkg
+
+# --------------- file-finder -------------------
+# dependencies
+file-finder/node_modules
+file-finder/.pnp
+file-finder/.pnp.js
+
+# testing
+file-finder/coverage
+
+# production
+file-finder/build
+file-finder/dist
+
+# misc
+file-finder/.DS_Store
+file-finder/.env.local
+file-finder/.env.development.local
+file-finder/.env.test.local
+file-finder/.env.production.local
+
+file-finder/npm-debug.log*
+file-finder/yarn-debug.log*
+file-finder/yarn-error.log*
