@@ -36,6 +36,7 @@ dependencies = [
  "priority-queue",
  "serde",
  "serde_derive",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-test",
  "wee_alloc",
@@ -100,12 +101,12 @@ checksum = "8452105ba047068f40ff7093dd1d9da90898e63dd61736462e9cdda6a90ad3c3"
 
 [[package]]
 name = "priority-queue"
-version = "0.7.0"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a03dfae8e64d4aa651415e2a4321f9f09f2e388a2f8bec36bed03bc22c0b687"
+checksum = "5ce18e1ee7a46cbd356679b420c77ee6c40f0a91ed012c925ca203041c0ef68d"
 dependencies = [
+ "autocfg",
  "indexmap",
- "take_mut",
 ]
 
 [[package]]
@@ -194,12 +195,6 @@ dependencies = [
  "quote 1.0.4",
  "unicode-xid 0.2.0",
 ]
-
-[[package]]
-name = "take_mut"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f764005d11ee5f36500a149ace24e00e3da98b0158b3e2d53a7495660d3f4d60"
 
 [[package]]
 name = "unicode-xid"

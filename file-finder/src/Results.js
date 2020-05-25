@@ -15,7 +15,6 @@ const handleCheck = (file) => {
 
 export default function Results(props) {
   const results = props.results
-  console.log(results)
   const listItems = results.map((result, index) => {
     let fileName = result[0].split('\\').pop().split('/').pop()
     let fileExt = fileName.split('.').pop()
@@ -27,8 +26,10 @@ export default function Results(props) {
             <FileIcon extension={fileExt} {...defaultStyles.docx} />
           </div> */}
           <div>
-            <h1>{fileName}</h1>
-            <h2>{result}</h2>
+            <h1>
+              {fileName} - [{result[1]}]
+            </h1>
+            <h2>{result[0]}</h2>
           </div>
         </div>
       </li>

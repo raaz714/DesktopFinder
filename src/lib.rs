@@ -1,12 +1,9 @@
 mod utils;
-
+use utils::set_panic_hook;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use priority_queue::PriorityQueue;
-use std::cmp::Reverse;
 
 use wasm_bindgen::prelude::*;
 
@@ -29,9 +26,10 @@ pub fn greet() {
     alert("Hello, finder-v2-wasm!");
 }
 
+#[derive(Serialize, Deserialize)]
 struct Trie {
     pub chars: HashMap<u8, Trie>,
-    pub val: Option<HashSet<u64>>,
+    pub val: Option<HashSet<usize>>,
 }
 
 impl Trie {
@@ -42,8 +40,12 @@ impl Trie {
         }
     }
 
-    fn insert(&mut self, string: String, val: HashSet<u64>) {
+    fn insert(&mut self, string: String, val: HashSet<usize>) {
         let mut current_node = self;
+        if string.len() > 50
+        {
+            return;
+        }
         for c in string.as_bytes()
         {
             current_node = moving(current_node).chars
@@ -53,7 +55,7 @@ impl Trie {
         current_node.val = Some(val);
     }
 
-    fn get(&mut self, query: &String) -> Option<&HashSet<u64>> {
+    fn get(&mut self, query: &String) -> Option<&HashSet<usize>> {
         let mut current_node = self;
         for letter in query.as_bytes()
         {
@@ -69,7 +71,7 @@ impl Trie {
         current_node.val.as_ref()
     }
 
-    fn get_mut(&mut self, query: &String) -> Option<&mut HashSet<u64>> {
+    fn get_mut(&mut self, query: &String) -> Option<&mut HashSet<usize>> {
         let mut current_node = self;
         for letter in query.as_bytes()
         {
@@ -89,34 +91,74 @@ impl Trie {
 fn moving<T>(t: T) -> T { t }
 
 #[wasm_bindgen]
+#[derive(Serialize, Deserialize)]
 pub struct DictData {
     dictionary: Trie,
-    file_paths: HashMap<u64, String>,
+    file_paths: Vec<String>
 }
 
-fn calculate_hash<T: Hash>(t: &T) -> u64 {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    s.finish()
-}
+// fn calculate_hash<T: Hash>(t: &T) -> u64 {
+//     let mut s = DefaultHasher::new();
+//     t.hash(&mut s);
+//     s.finish()
+// }
 
 #[wasm_bindgen]
 impl DictData {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
+        set_panic_hook();
         Self {
             dictionary: Trie::new(),
-            file_paths: HashMap::new()
+            file_paths: Vec::new()
         }
+    }
+
+    pub fn populate_from_buffer(&mut self, val: &JsValue) -> JsValue {
+        let serde_dict = val.into_serde();
+        if serde_dict.is_ok()
+        {
+            let dict_data: DictData = serde_dict.unwrap();
+            *self = dict_data;
+            JsValue::from_serde("Ok").unwrap()
+        }
+        else
+        {
+            let error = &serde_dict.err().unwrap();
+            if error.is_io()
+            {
+                JsValue::from_serde("IO error").unwrap()
+            }
+            else if error.is_syntax()
+            {
+                JsValue::from_serde("Syntax error").unwrap()
+            }
+            else if error.is_data()
+            {
+                JsValue::from_serde("Data error").unwrap()
+            }
+            else if error.is_eof()
+            {
+                JsValue::from_serde("EOF error").unwrap()
+            }
+            else
+            {
+                JsValue::from_serde("Other error").unwrap()
+            }
+        }
+    }
+
+    pub fn write_to_buffer(&self) -> JsValue {
+        JsValue::from_serde(self).unwrap()
     }
 
     pub fn insert(&mut self, raw_words: &str, file_path: &str) {
         let raw_words = raw_words.to_lowercase();
-        let file_hash: u64 = calculate_hash(&raw_words);
-        self.file_paths.insert(file_hash, file_path.to_string());
+        self.file_paths.push(file_path.to_string());
+        let file_index = self.file_paths.len() - 1;
 
         let tokens: Vec<&str> = raw_words.split(
-            |c| c == ' ' || c == '-' || c == '/' || c == '.'
+            |c| c == ' ' || c == '-' || c == '_' || c == '/' || c == '.'
             ).collect();
 
         for token in tokens
@@ -127,29 +169,43 @@ impl DictData {
                 self.dictionary.insert(token.to_string(), HashSet::new());
                 dict_elem = self.dictionary.get_mut(&token.to_string());
             }
-            dict_elem.unwrap().insert(file_hash);
+            if dict_elem.is_some()
+            {
+                dict_elem.unwrap().insert(file_index);
+            }
         }
     }
 
-    //pub fn search(&mut self, query: &str, results: &mut HashSet<str>) {
-    //    results.clear();
-    //    let query = query.to_lowercase();
-    //    let dict_elems = self.dictionary.get(&query);
-    //    if dict_elems.is_none()
-    //    {
-    //        return;
-    //    }
-    //    for elem in dict_elems.unwrap()
-    //    {
-    //        let file_path = self.file_paths.get(&elem);
-    //        results.insert(file_path.unwrap().to_string());
-    //    }
-    //}
+    pub fn search(&mut self, query: &str) -> JsValue {
+       let mut results = HashSet::new();
+       let mut v = Vec::new();
+       let mut i = 50;
+       let query = query.to_lowercase();
+       let dict_elems = self.dictionary.get(&query);
+
+       if dict_elems.is_none()
+       {
+           return JsValue::from_serde(&v).unwrap();
+       }
+       for elem in dict_elems.unwrap()
+       {
+           let file_path = &self.file_paths[*elem];
+           results.insert(file_path.to_string());
+       }
+
+       for elem in &results
+       {
+           if i == 0 {
+               break;
+           }
+           v.push((elem, 0));
+           i -= 1;
+       }
+       JsValue::from_serde(&v).unwrap()
+    }
 
     pub fn fuzzy_search(&self, query: &str) -> JsValue {
-        //let mut results = HashSet::new();
         let mut results = PriorityQueue::new();
-        results.clear();
         let query = query.to_lowercase();
         let tokens: Vec<&str> = query.split(
             |c| c == ' ' || c == '.'
@@ -166,11 +222,15 @@ impl DictData {
         }
 
         let mut v = Vec::new();
+        let mut i = 50;
 
-        //for elem in &results
         for (elem, score) in results.into_sorted_iter()
         {
+            if i == 0 {
+                break;
+            }
             v.push((elem, score));
+            i -= 1;
         }
         JsValue::from_serde(&v).unwrap()
     }
@@ -200,18 +260,15 @@ impl DictData {
         {
             for elem in sub_trie.val.as_ref().unwrap()
             {
-                let file_path = self.file_paths.get(&elem);
-                //results.insert(file_path.unwrap().to_string());
-                if results.len() < 50
+                let file_path = &self.file_paths[*elem];
+                if let Some(priority) = results.get_priority(file_path)
                 {
-                    results.push(file_path.unwrap().to_string(), max_val);
+                    let new_priority = priority + max_val;
+                    results.change_priority(file_path, new_priority);
                 }
-                else if let Some((_, p)) = results.peek()
+                else
                 {
-                    if p <= &max_val
-                    {
-                        results.push(file_path.unwrap().to_string(), max_val);
-                    }
+                    results.push(file_path.clone(), max_val);
                 }
             }
         }
@@ -222,4 +279,3 @@ impl DictData {
         }
     }
 }
-
