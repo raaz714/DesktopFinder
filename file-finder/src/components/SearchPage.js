@@ -73,12 +73,8 @@ class SearchPage extends Component {
         this.state.dict.insert(file, file)
       },
       (err) => {
-        // let buff = JSON.stringify(dict.write_to_buffer())
-        // fs.writeFileSync(
-        //   this.props.dumpPath,
-        //   zlib.deflateSync(buff),
-        //   'utf-8'
-        // )
+        let buff = JSON.stringify(this.state.dict.write_to_buffer())
+        fs.writeFileSync(this.props.dumpPath, zlib.deflateSync(buff), 'utf-8')
         console.log('Done, loading database')
       }
     )

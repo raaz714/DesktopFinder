@@ -3,6 +3,7 @@ const app = electron.app
 const BrowserWindow = electron.BrowserWindow
 const path = require('path')
 const url = require('url')
+const fs = require('fs')
 const isDev = require('electron-is-dev')
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -36,6 +37,12 @@ function createWindow() {
   mainWindow.on('closed', function () {
     mainWindow = null
   })
+
+  const configDir = app.getPath('home') + '/.raazsearch/'
+
+  if (!fs.existsSync(configDir)) {
+    fs.mkdirSync(configDir, { recursive: true })
+  }
 }
 
 app.on('ready', createWindow)

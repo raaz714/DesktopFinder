@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer } from 'react'
-import { loadState, saveState } from './config-storage'
+import { getConfigDir, loadState, saveState } from './config-storage'
 
 export const AppContext = createContext()
 
@@ -60,14 +60,8 @@ export function AppStateProvider({ children }) {
 
   if (initialState === undefined) {
     initialState = {
-      dumpPath: '/home/raaz/dict_dump',
-      dirPaths: [
-        {
-          dir: '/media/raaz/Media',
-          status: 'pending',
-        } /*, '/media/raaz/Workspace'*/,
-      ],
-      //   dirPaths: [],
+      dumpPath: getConfigDir() + 'dat_dump',
+      dirPaths: [],
     }
   }
 

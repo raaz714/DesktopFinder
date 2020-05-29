@@ -5,7 +5,7 @@ const { dialog } = window.require('electron').remote
 function AddItemForm() {
   const dispatch = useAppReducer()
   const { dirPaths } = useAppState()
-  console.log(dirPaths)
+  console.log('Dirs : ', dirPaths)
   const dirList = dirPaths.map((dirPath, index) => {
     return <li key={index}>{dirPath.dir}</li>
   })
