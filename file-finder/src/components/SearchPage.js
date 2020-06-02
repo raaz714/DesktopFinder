@@ -31,7 +31,10 @@ class SearchPage extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    if (prevProps !== this.props) this.refreshDict()
+    if (
+      JSON.stringify(prevProps.dirPaths) !== JSON.stringify(this.props.dirPaths)
+    )
+      this.refreshDict()
   }
 
   loadDict = () => {

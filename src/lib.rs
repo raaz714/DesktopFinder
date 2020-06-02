@@ -7,6 +7,9 @@ use priority_queue::PriorityQueue;
 
 use wasm_bindgen::prelude::*;
 
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+
 #[macro_use]
 extern crate serde_derive;
 
@@ -29,7 +32,7 @@ pub fn greet() {
 #[derive(Serialize, Deserialize)]
 struct Trie {
     pub chars: HashMap<u8, Trie>,
-    pub val: Option<HashSet<usize>>,
+    pub val: Option<HashSet<String>>,
 }
 
 impl Trie {
@@ -40,7 +43,7 @@ impl Trie {
         }
     }
 
-    fn insert(&mut self, string: String, val: HashSet<usize>) {
+    fn insert(&mut self, string: String, val: HashSet<String>) {
         let mut current_node = self;
         if string.len() > 50
         {
@@ -55,7 +58,7 @@ impl Trie {
         current_node.val = Some(val);
     }
 
-    fn get(&mut self, query: &String) -> Option<&HashSet<usize>> {
+    fn get(&mut self, query: &String) -> Option<&HashSet<String>> {
         let mut current_node = self;
         for letter in query.as_bytes()
         {
@@ -71,7 +74,7 @@ impl Trie {
         current_node.val.as_ref()
     }
 
-    fn get_mut(&mut self, query: &String) -> Option<&mut HashSet<usize>> {
+    fn get_mut(&mut self, query: &String) -> Option<&mut HashSet<String>> {
         let mut current_node = self;
         for letter in query.as_bytes()
         {
@@ -94,14 +97,15 @@ fn moving<T>(t: T) -> T { t }
 #[derive(Serialize, Deserialize)]
 pub struct DictData {
     dictionary: Trie,
-    file_paths: Vec<String>
+    // file_paths: Vec<String>
+    file_paths: HashMap<String, String>
 }
 
-// fn calculate_hash<T: Hash>(t: &T) -> u64 {
-//     let mut s = DefaultHasher::new();
-//     t.hash(&mut s);
-//     s.finish()
-// }
+fn calculate_hash<T: Hash>(t: &T) -> String {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish().to_string()
+}
 
 #[wasm_bindgen]
 impl DictData {
@@ -110,7 +114,8 @@ impl DictData {
         set_panic_hook();
         Self {
             dictionary: Trie::new(),
-            file_paths: Vec::new()
+            // file_paths: Vec::new()
+            file_paths: HashMap::new()
         }
     }
 
@@ -148,14 +153,26 @@ impl DictData {
         }
     }
 
+    fn add_file_path(&mut self, key:String, word: &str) {
+        // self.file_paths.insert(word.to_string());
+        self.file_paths.entry(key).or_insert(word.to_string());
+    }
+
+    fn get_file_path(&self, key: String) -> &String {
+        // &self.file_paths[key]
+        &self.file_paths.get(&key).unwrap()
+    }
+
     pub fn write_to_buffer(&self) -> JsValue {
         JsValue::from_serde(self).unwrap()
     }
 
     pub fn insert(&mut self, raw_words: &str, file_path: &str) {
         let raw_words = raw_words.to_lowercase();
-        self.file_paths.push(file_path.to_string());
-        let file_index = self.file_paths.len() - 1;
+        // self.file_paths.push(file_path.to_string());
+        // let file_index = self.file_paths.len() - 1;
+        let file_index = calculate_hash(&file_path.to_string());
+        self.add_file_path(file_index.clone(), file_path);
 
         let tokens: Vec<&str> = raw_words.split(
             |c| c == ' ' || c == '-' || c == '_' || c == '/' || c == '.'
@@ -171,7 +188,7 @@ impl DictData {
             }
             if dict_elem.is_some()
             {
-                dict_elem.unwrap().insert(file_index);
+                dict_elem.unwrap().insert(file_index.clone());
             }
         }
     }
@@ -181,7 +198,7 @@ impl DictData {
        let mut v = Vec::new();
        let mut i = 50;
        let query = query.to_lowercase();
-       let dict_elems = self.dictionary.get(&query);
+       let dict_elems = self.dictionary.get(&query).cloned();
 
        if dict_elems.is_none()
        {
@@ -189,7 +206,8 @@ impl DictData {
        }
        for elem in dict_elems.unwrap()
        {
-           let file_path = &self.file_paths[*elem];
+        //    let file_path = &self.file_paths[elem];
+           let file_path = self.get_file_path(elem);
            results.insert(file_path.to_string());
        }
 
@@ -260,7 +278,8 @@ impl DictData {
         {
             for elem in sub_trie.val.as_ref().unwrap()
             {
-                let file_path = &self.file_paths[*elem];
+                // let file_path = &self.file_paths[*elem];
+                let file_path = self.get_file_path(elem.to_string());
                 if let Some(priority) = results.get_priority(file_path)
                 {
                     let new_priority = priority + max_val;
