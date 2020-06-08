@@ -1,12 +1,11 @@
-import React from 'react'
-import { useAppState, useAppReducer } from '../AppContext'
+import React, { useContext } from 'react'
+import { DictContext } from '../context/DictContext'
+
 const { dialog } = window.require('electron').remote
 
 function AddItemForm() {
-  const dispatch = useAppReducer()
-  const { dirPaths } = useAppState()
-  console.log('Dirs : ', dirPaths)
-  const dirList = dirPaths.map((dirPath, index) => {
+  const { config, addDir } = useContext(DictContext)
+  const dirList = config.dirPaths.map((dirPath, index) => {
     return <li key={index}>{dirPath.dir}</li>
   })
 
@@ -23,7 +22,8 @@ function AddItemForm() {
             status: 'pending',
           }
           if (!!newItem.dir.trim()) {
-            dispatch({ type: 'ADD_ITEM', item: newItem })
+            // dispatch({ type: 'ADD_ITEM', item: newItem })
+            addDir(newItem)
           }
         }
       })

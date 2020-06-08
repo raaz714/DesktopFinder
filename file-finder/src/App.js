@@ -8,7 +8,8 @@ import Tab from '@material-ui/core/Tab'
 import SettingsIcon from '@material-ui/icons/Settings'
 import SearchIcon from '@material-ui/icons/Search'
 
-import { AppStateProvider } from './AppContext'
+// import { AppStateProvider } from './AppContext'
+import DictContextProvider from './context/DictContext'
 import { RenderSearchPage } from './components/SearchPage'
 import { AddItemForm } from './components/SettingsPage'
 
@@ -33,7 +34,7 @@ class App extends Component {
       //   <RenderSearchPage />
       // </AppStateProvider>
 
-      <AppStateProvider>
+      <DictContextProvider>
         <Container maxWidth='md'>
           <Paper square>
             <Tabs
@@ -57,7 +58,7 @@ class App extends Component {
             </div>
           </Paper>
         </Container>
-      </AppStateProvider>
+      </DictContextProvider>
     )
   }
 }
