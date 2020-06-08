@@ -1,20 +1,16 @@
-import React, { createContext, useState, useEffect, useRef } from 'react'
+import React, { createContext, useState, useEffect } from 'react'
 import { walkDirCallback } from '../crawler/Crawler'
 import { loadConfig, saveConfig, saveDB, loadDB } from '../storage/storageUtils'
 
-// const electron = window.require('electron')
-// const fs = window.require('fs')
-// const zlib = window.require('zlib')
-
 export const DictContext = createContext()
 
-function usePreviousState(value) {
-  const ref = useRef()
-  useEffect(() => {
-    ref.current = value
-  })
-  return ref.current
-}
+// function usePreviousState(value) {
+//   const ref = useRef()
+//   useEffect(() => {
+//     ref.current = value
+//   })
+//   return ref.current
+// }
 
 const DictContextProvider = (props) => {
   const loadedConfig = loadConfig()
@@ -26,9 +22,13 @@ const DictContextProvider = (props) => {
         }
   )
   const [dict, setDict] = useState(null)
-  const prevConfig = usePreviousState(config)
+  // const prevConfig = usePreviousState(config)
 
   useEffect(() => {
+    if (!dict) {
+      initDict()
+      return
+    }
     saveConfig(config)
     const dirs = config.dirPaths
       .filter((dirPath) => {
@@ -37,26 +37,17 @@ const DictContextProvider = (props) => {
       .map((dirPath) => {
         return dirPath.dir
       })
-    populateDict(dict, dirs)
+    if (dirs.length) {
+      populateDict(dict, dirs)
+
+      let newConfigDirPaths = config.dirPaths.map((dirPath) => {
+        return dirs.includes(dirPath.dir)
+          ? { dir: dirPath.dir, status: 'crawling' }
+          : dirPath
+      })
+      setConfig({ dirPaths: newConfigDirPaths })
+    }
   })
-
-  // const diffDirsFromConfig = () => {
-  //   const dirs = config.dirPaths.map((dirPath) => {
-  //     return dirPath.dir
-  //   })
-
-  //   if (prevConfig) {
-  //     const prevDirs = prevConfig.dirPaths.map((dirPath) => {
-  //       return dirPath.dir
-  //     })
-  //     const currentDirs = config.dirPaths.map((dirPath) => {
-  //       return dirPath.dir
-  //     })
-  //     return currentDirs.filter((x) => !prevDirs.includes(x))
-  //   } else {
-  //     return dirs
-  //   }
-  // }
 
   const initDict = async () => {
     const finder = await import('fuzzy-finder')
@@ -67,7 +58,7 @@ const DictContextProvider = (props) => {
     }
   }
 
-  const populateDict = (dict, newDirs) => {
+  const populateDict = async (dict, newDirs) => {
     console.log(dict, newDirs)
     if (!dict) return
     walkDirCallback(
@@ -76,7 +67,7 @@ const DictContextProvider = (props) => {
         dict.insert(file, file)
       },
       (err) => {
-        console.log('Crawling done for : ', newDirs)
+        // console.log('Crawling done for : ', newDirs)
         let newConfigDirPaths = config.dirPaths.map((dirPath) => {
           return newDirs.includes(dirPath.dir)
             ? { dir: dirPath.dir, status: 'done' }
@@ -95,7 +86,7 @@ const DictContextProvider = (props) => {
     })
   }
 
-  initDict()
+  // initDict()
   return (
     <DictContext.Provider value={{ config, dict, addDir }}>
       {props.children}
